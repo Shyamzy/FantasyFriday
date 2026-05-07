@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from supabase import create_client, Client
+from supabase import create_client
 import requests
 from dotenv import load_dotenv
 import os
+from pydantic import BaseModel
+from typing import Optional
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -11,6 +13,14 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+
+class UpdateProfileRequest(BaseModel):
+    username: Optional[str] = None
+    avatar_url: Optional[str] = None
+    favourite_team: Optional[str] = None
+    fpl_team_id: Optional[int] = None
+    
 
 app = FastAPI(title="FantasyFriday API")
 
@@ -36,6 +46,7 @@ def get_gameweek():
     for event in events:
         if event.get("is_current") == True:
             return {"gameweek": event.get("id")}
+        
     raise HTTPException(status_code=404, detail="Gameweek not found")
 
 
@@ -47,6 +58,34 @@ def get_squad(user_id: str):
         if not squad.data:
                 raise HTTPException(status_code=404, detail="No squad found")
         return {"squad" : squad.data}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.get("/profile/{user_id}")
+def get_profile(user_id: str):
+    try:
+        profile = supabase_admin.table("user_profiles").select("*").eq("id" , user_id).execute()
+        if not profile.data:
+            raise HTTPException(status_code=404, detail="No user found")
+        return {"user" : profile.data}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.put("/profile/{user_id}")
+def update_profile(user_id: str, data: UpdateProfileRequest):
+    try:
+        filtered_data = data.model_dump(exclude_none=True)
+        profile = supabase_admin.table("user_profiles").update(filtered_data).eq("id" , user_id).execute()
+        return {"user" : profile.data}
+    
     except HTTPException:
         raise
     except Exception as e:
@@ -78,6 +117,7 @@ def import_squad(user_id: str, fpl_team_id: int):
         supabase_admin.table("squads").insert(squad_list).execute()
 
         return {"message": "success"} 
+    
     except HTTPException:
         raise
     except Exception as e:
