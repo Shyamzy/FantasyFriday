@@ -23,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 def root():
     return {"message": "FantasyIQ API is running"}
@@ -36,6 +37,20 @@ def get_gameweek():
         if event.get("is_current") == True:
             return {"gameweek": event.get("id")}
     raise HTTPException(status_code=404, detail="Gameweek not found")
+
+
+@app.get("/squad/{user_id}/")
+def get_squad(user_id: str):
+    try:
+        gameweek = get_gameweek()
+        squad = supabase_admin.table("squads").select("*").eq("user_id" , user_id).eq("gameweek", gameweek.get("gameweek")).execute()
+        if not squad.data:
+                raise HTTPException(status_code=404, detail="No squad found")
+        return {"squad" : squad.data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/import-squad/")
