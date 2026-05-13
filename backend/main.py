@@ -13,6 +13,7 @@ SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+GROQ_API_KEY = os.getenv("GROQ_KEY")
 
 
 class UpdateProfileRequest(BaseModel):
@@ -20,7 +21,7 @@ class UpdateProfileRequest(BaseModel):
     avatar_url: Optional[str] = None
     favourite_team: Optional[str] = None
     fpl_team_id: Optional[int] = None
-    
+
 
 app = FastAPI(title="FantasyFriday API")
 
